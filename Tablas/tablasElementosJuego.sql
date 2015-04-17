@@ -1,0 +1,122 @@
+/**
+*ORDEN 4
+*@authors Mardiada y Sallopjo
+*/
+/*ELEMENTOS DE JUEGO*/
+/*Ejercitos de los usuarios*/
+CREATE TABLE listasEjercito
+	(id INTEGER UNSIGNED AUTO_INCREMENT
+	,user INTEGER UNSIGNED NOT NULL
+	,nombre VARCHAR (100)  CHARSET utf8 COLLATE utf8_unicode_ci NOT NULL
+	,raza INTEGER UNSIGNED NOT NULL
+	,pts INTEGER UNSIGNED NOT NULL
+	,PRIMARY KEY (id)
+	,FOREIGN KEY (user) REFERENCES users(id) ON DELETE CASCADE
+	,FOREIGN KEY (raza) REFERENCES razas(id) ON DELETE CASCADE
+	,UNIQUE (user,nombre)
+	)collate utf8_bin engine=innoDB;
+
+/*Tropas de los ejercitos*/
+CREATE TABLE tropas
+	(id INTEGER UNSIGNED AUTO_INCREMENT
+	,nombre VARCHAR (50)  CHARSET utf8 COLLATE utf8_unicode_ci NOT NULL
+	,lista INTEGER UNSIGNED NOT NULL
+	,tipo INTEGER UNSIGNED NOT NULL
+	,miembros INTEGER UNSIGNED NOT NULL
+	,pts INTEGER UNSIGNED NULL
+	,esGeneral BOOLEAN NOT NULL
+	,estandarteBatalla BOOLEAN NOT NULL
+	,campeon BOOLEAN NOT NULL
+	,estandarte BOOLEAN NOT NULL
+	,musico BOOLEAN NOT NULL
+	,PRIMARY KEY (id)
+	,FOREIGN KEY (lista) REFERENCES listasEjercito(id) ON DELETE CASCADE
+	,FOREIGN KEY (tipo) REFERENCES tiposTropa(id) ON DELETE CASCADE
+	)collate utf8_bin engine=innoDB;
+
+/*Items que pueden emplear las unidades*
+CREATE TABLE items
+	(id INTEGER UNSIGNED AUTO_INCREMENT
+	,nombre VARCHAR (100) NOT NULL
+	,tipo INTEGER UNSIGNED NOT NULL
+	,descripcion VARCHAR (255) NOT NULL
+	,alcance INTEGER UNSIGNED NULL
+	,magica BOOLEAN NOT NULL
+	,PRIMARY KEY (id)
+	,FOREIGN KEY (tipo) REFERENCES tiposItem(id)
+	,UNIQUE (nombre)
+	)engine=innoDB;
+
+/*Equipamientos empleados por unidades*
+CREATE TABLE equipamientos
+	(id INTEGER UNSIGNED AUTO_INCREMENT
+	,arma INTEGER UNSIGNED NOT NULL
+	,armadura INTEGER UNSIGNED NULL
+	,escudo INTEGER UNSIGNED NULL
+	,armaduraMagica INTEGER UNSIGNED NULL
+	,armaDistancia INTEGER UNSIGNED NULL
+	,talisman INTEGER UNSIGNED NULL
+	,objetoHechizado INTEGER UNSIGNED NULL
+	,objetoArcano INTEGER UNSIGNED NULL
+	,estandarte INTEGER UNSIGNED NULL
+	,PRIMARY KEY (id)
+	,FOREIGN KEY (arma) REFERENCES items(id)
+	,FOREIGN KEY (armadura) REFERENCES items(id)
+	,FOREIGN KEY (escudo) REFERENCES items(id)
+	,FOREIGN KEY (armaduraMagica) REFERENCES items(id)
+	,FOREIGN KEY (armaDistancia) REFERENCES items(id)
+	,FOREIGN KEY (talisman) REFERENCES items(id)
+	,FOREIGN KEY (objetoHechizado) REFERENCES items(id)
+	,FOREIGN KEY (objetoArcano) REFERENCES items(id)
+	,FOREIGN KEY (estandarte) REFERENCES items(id)
+	)engine=innoDB;
+
+/*Unidades pertenecientes a las tropas*/
+CREATE TABLE unidades
+	(id INTEGER UNSIGNED AUTO_INCREMENT
+	,tropa INTEGER UNSIGNED NOT NULL
+	,tipo INTEGER UNSIGNED NOT NULL
+	,rango INTEGER UNSIGNED NOT NULL
+	,representada BOOLEAN NOT NULL
+	,movimiento INTEGER UNSIGNED NOT NULL
+	,ha INTEGER UNSIGNED NOT NULL
+	,hp INTEGER UNSIGNED NOT NULL
+	,f INTEGER UNSIGNED NOT NULL
+	,r INTEGER UNSIGNED NOT NULL
+	,i INTEGER UNSIGNED NOT NULL
+	,a INTEGER UNSIGNED NOT NULL
+	,ps INTEGER UNSIGNED NOT NULL
+	,l INTEGER UNSIGNED NOT NULL
+	,montura BOOLEAN NOT NULL
+	,maquinaria BOOLEAN NOT NULL
+	,dotacion BOOLEAN NOT NULL
+	,PRIMARY KEY (id)
+	,FOREIGN KEY (tropa) REFERENCES tropas(id) ON DELETE CASCADE
+	,FOREIGN KEY (tipo) REFERENCES tiposUnidad(id) ON DELETE CASCADE
+	,FOREIGN KEY (rango) REFERENCES rangosUnidad(rango) ON DELETE CASCADE
+	)collate utf8_bin engine=innoDB;
+
+/*Hechizos*
+CREATE TABLE hechizos
+	(id INTEGER UNSIGNED AUTO_INCREMENT
+	,saber INTEGER UNSIGNED NOT NULL
+	,orden INTEGER UNSIGNED NOT NULL
+	,nombre VARCHAR (100) NOT NULL
+	,dificultad INTEGER UNSIGNED NOT NULL
+	,permanece BOOLEAN NOT NULL
+	,proyectil BOOLEAN NOT NULL
+	,alcanceVariable BOOLEAN NOT NULL
+	,alcance INTEGER UNSIGNED NULL
+	,impactosVariables BOOLEAN NOT NULL
+	,impactos INTEGER UNSIGNED NULL
+	,fuerzaVariable BOOLEAN NOT NULL
+	,fuerza INTEGER UNSIGNED NULL
+	,heridasVariables BOOLEAN NOT NULL
+	,heridas INTEGER UNSIGNED NULL
+	,efecto BOOLEAN NOT NULL
+	,PRIMARY KEY (id)
+	,FOREIGN KEY (saber) REFERENCES saberes(id)
+	,UNIQUE (nombre)
+	,UNIQUE (saber,orden)
+	)engine=innoDB;
+*/
