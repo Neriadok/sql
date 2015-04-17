@@ -135,6 +135,7 @@ CREATE PROCEDURE proceso_listadoPartidas(
 		SELECT
 			e.id
 			,p.id as partida
+			,e.user
 			,u1.nickname as desafiadorNick	
 			,u2.nickname as desafiadoNick
 			,l.nombre as ejercitoNombre
@@ -143,14 +144,15 @@ CREATE PROCEDURE proceso_listadoPartidas(
 			,f.nombre as fase
 			,UNIX_TIMESTAMP(p.fechaInicio)
 			,UNIX_TIMESTAMP(p.fechaFin)
-			,p.vencedor
+			,v.nickname
 			
-			FROM ((((((
+			FROM (((((((
 				ejercitos e
 					LEFT JOIN partidas p ON e.partida = p.id)
 					LEFT JOIN listasejercito l ON e.listaejercito = l.id)
 					LEFT JOIN users u1 ON p.desafiador = u1.id)
 					LEFT JOIN users u2 ON p.desafiado = u2.id)
+					LEFT JOIN users v ON p.vencedor = v.id)
 					LEFT JOIN (SELECT
 									ejercito
 									,count(*) as turnos
@@ -161,7 +163,8 @@ CREATE PROCEDURE proceso_listadoPartidas(
 					LEFT JOIN (SELECT
 								tf.nombre
 								,tu.ejercito
-								FROM (fases fa LEFT JOIN tiposfase tf ON fa.tipo = tf.orden) LEFT JOIN turnos tu ON fa.turno = tu.id
+								FROM (fases fa LEFT JOIN tiposfase tf ON fa.tipo = tf.orden) 
+									LEFT JOIN turnos tu ON fa.turno = tu.id
 								ORDER BY fa.fechaInicio DESC
 								LIMIT 1
 							) f
