@@ -155,7 +155,7 @@ CREATE PROCEDURE proceso_listadoPartidas(
 					LEFT JOIN users v ON p.vencedor = v.id)
 					LEFT JOIN (SELECT
 									ejercito
-									,count(*) as turnos
+									,max(turno) as turnos
 									FROM turnos
 									GROUP BY ejercito
 							) t
@@ -172,6 +172,61 @@ CREATE PROCEDURE proceso_listadoPartidas(
 					LEFT JOIN correo c ON p.desafio = c.id
 			WHERE e.user = _uId
 			ORDER BY fechaFin, fechaInicio DESC
+		;
+	END;
+$$
+DELIMITER ;
+
+/*Listado de Partidas*/
+DROP PROCEDURE IF EXISTS proceso_datosPartida;
+DELIMITER $$
+CREATE PROCEDURE proceso_datosPartida(
+		IN _eId INTEGER UNSIGNED
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+		SELECT
+			e.id
+			,e.user
+			,p.id as partida
+			,if(e.user = de.id, "desafiador", "desafiado") AS orden
+			,l.nombre as ejercitoNombre
+			,l.id as listaId
+			,c.pts
+			,t.turnos
+			,f.nombre as fase
+			,f.fechaInicio
+			,if(f.fechaFin is null, false, true) as finalizada
+			
+			FROM (((((((
+				ejercitos e
+					LEFT JOIN partidas p ON e.partida = p.id)
+					LEFT JOIN listasejercito l ON e.listaejercito = l.id)
+					LEFT JOIN users de ON p.desafiador = de.id)
+					LEFT JOIN users v ON p.vencedor = v.id)
+					LEFT JOIN (SELECT
+									ejercito
+									,max(turno) as turnos
+									FROM turnos
+									GROUP BY ejercito
+							) t
+						ON t.ejercito = e.id)
+					LEFT JOIN (SELECT
+								tf.nombre
+								,tu.ejercito
+								,fa.fechaInicio
+								,fa.fechaFin
+								FROM (fases fa LEFT JOIN tiposfase tf ON fa.tipo = tf.orden) 
+									LEFT JOIN turnos tu ON fa.turno = tu.id
+								ORDER BY fa.fechaInicio DESC
+								LIMIT 1
+							) f
+						ON f.ejercito = e.id)
+					LEFT JOIN correo c ON p.desafio = c.id)
+			WHERE e.id = _eId
+			ORDER BY fechaInicio DESC
 		;
 	END;
 $$
