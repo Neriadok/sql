@@ -160,6 +160,30 @@ CREATE PROCEDURE proceso_listasUsuario(
 $$
 DELIMITER ;
 
+/*Nueva lista de ejército*/
+DROP PROCEDURE IF EXISTS proceso_listasUsuarioPts;
+DELIMITER $$
+CREATE PROCEDURE proceso_listasUsuarioPts(
+		IN _user INTEGER UNSIGNED
+		,IN _pts INTEGER UNSIGNED
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+		SELECT
+			l.id
+			,l.nombre
+			,l.pts
+			, count(t.id) AS numTropas
+			FROM listasejercito l LEFT JOIN tropas t ON l.id = t.lista
+			WHERE l.user=_user AND l.pts <= _pts
+			GROUP BY l.id
+		;
+	END;
+$$
+DELIMITER ;
+
 /*Datos básicos de una lista de ejercito*/
 DROP PROCEDURE IF EXISTS proceso_lista;
 DELIMITER $$

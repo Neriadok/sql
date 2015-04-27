@@ -37,23 +37,39 @@ CREATE PROCEDURE proceso_datosUsersAdmin()
 			,if(p.mensajes IS NULL , 0 , p.mensajes) as mensajes
 			,if(t.temas IS NULL , 0 , t.temas )as temas
 			,u.grito
-			,(100) as Partidas
-			,(100) as Victorias
-			FROM (users u 
-				LEFT JOIN 
-					(SELECT 
-						emisor AS user
-						,count(*) AS mensajes
-						FROM posts
-						GROUP BY user
-					) p ON p.user = u.id
-				) LEFT JOIN
-					(SELECT
-						creador AS user
-						,count(*) AS temas
-						FROM temas
-						GROUP BY user
-					) t ON t.user = u.id
+			,if(e.partidas IS NULL, 0, e.partidas) AS partidas
+			,if(pa.victorias IS NULL, 0, pa.victorias) AS victorias
+			FROM ((((
+				users u 
+					LEFT JOIN (SELECT 
+								emisor AS user
+								,count(*) AS mensajes
+								FROM posts
+								GROUP BY user
+							) p 
+						ON p.user = u.id) 
+					LEFT JOIN (SELECT
+								creador AS user
+								,count(*) AS temas
+								FROM temas
+								GROUP BY user
+							) t 
+						ON t.user = u.id)
+					LEFT JOIN 
+							(SELECT 
+								vencedor AS user
+								,count(*) AS victorias
+								FROM partidas
+								GROUP BY user
+							) pa 
+						ON pa.user = u.id)
+					LEFT JOIN (SELECT 
+								user
+								,count(*) AS partidas
+								FROM ejercitos
+								GROUP BY user
+							) e 
+						ON e.user = u.id)
 			GROUP BY nickname
 			ORDER BY tipoUser desc, nickname
 		;
@@ -84,23 +100,38 @@ CREATE PROCEDURE proceso_datosUsers()
 			,if(p.mensajes IS NULL , 0 , p.mensajes) as mensajes
 			,if(t.temas IS NULL , 0 , t.temas )as temas
 			,u.grito
-			,(100) as Partidas
-			,(100) as Victorias
-			FROM (users u 
-				LEFT JOIN 
-					(SELECT 
-						emisor AS user
-						,count(*) AS mensajes
-						FROM posts
-						GROUP BY user
-					) p ON p.user = u.id
-				) LEFT JOIN
-					(SELECT
-						creador AS user
-						,count(*) AS temas
-						FROM temas
-						GROUP BY user
-					) t ON t.user = u.id
+			,if(e.partidas IS NULL, 0, e.partidas) AS partidas
+			,if(pa.victorias IS NULL, 0, pa.victorias) AS victorias
+			FROM (((
+				users u 
+					LEFT JOIN 
+						(SELECT 
+							emisor AS user
+							,count(*) AS mensajes
+							FROM posts
+							GROUP BY user
+						) p ON p.user = u.id
+					) LEFT JOIN
+						(SELECT
+							creador AS user
+							,count(*) AS temas
+							FROM temas
+							GROUP BY user
+						) t ON t.user = u.id
+					LEFT JOIN (SELECT 
+								vencedor AS user
+								,count(*) AS victorias
+								FROM partidas
+								GROUP BY user
+							) pa 
+						ON pa.user = u.id)
+					LEFT JOIN (SELECT 
+								user
+								,count(*) AS partidas
+								FROM ejercitos
+								GROUP BY user
+							) e 
+						ON e.user = u.id)
 			GROUP BY nickname
 			ORDER BY renombre desc, u.fechaRegistro, u.nickname
 		;
@@ -110,7 +141,7 @@ DELIMITER ;
 
 
 /*Administrar usuarios*/
-DROP PROCEDURE IF EXISTS datosUser;
+DROP PROCEDURE IF EXISTS proceso_datosUser;
 DELIMITER $$
 CREATE PROCEDURE proceso_datosUser(
 		IN _uId INTEGER UNSIGNED
@@ -133,23 +164,38 @@ CREATE PROCEDURE proceso_datosUser(
 			,if(p.mensajes IS NULL , 0 , p.mensajes) as mensajes
 			,if(t.temas IS NULL , 0 , t.temas )as temas
 			,u.grito
-			,(100) as Partidas
-			,(100) as Victorias
-			FROM (users u 
-				LEFT JOIN 
-					(SELECT 
-						emisor AS user
-						,count(*) AS mensajes
-						FROM posts
-						GROUP BY user
-					) p ON p.user = u.id
-				) LEFT JOIN
-					(SELECT
-						creador AS user
-						,count(*) AS temas
-						FROM temas
-						GROUP BY user
-					) t ON t.user = u.id
+			,if(e.partidas IS NULL, 0, e.partidas) AS partidas
+			,if(pa.victorias IS NULL, 0, pa.victorias) AS victorias
+			FROM (((
+				users u 
+					LEFT JOIN 
+						(SELECT 
+							emisor AS user
+							,count(*) AS mensajes
+							FROM posts
+							GROUP BY user
+						) p ON p.user = u.id
+					) LEFT JOIN
+						(SELECT
+							creador AS user
+							,count(*) AS temas
+							FROM temas
+							GROUP BY user
+						) t ON t.user = u.id
+					LEFT JOIN (SELECT 
+								vencedor AS user
+								,count(*) AS victorias
+								FROM partidas
+								GROUP BY user
+							) pa 
+						ON pa.user = u.id)
+					LEFT JOIN (SELECT 
+								user
+								,count(*) AS partidas
+								FROM ejercitos
+								GROUP BY user
+							) e 
+						ON e.user = u.id)
 			WHERE u.id = _uId
 			LIMIT 1
 		;

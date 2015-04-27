@@ -191,7 +191,8 @@ CREATE PROCEDURE proceso_datosPartida(
 			e.id
 			,e.user
 			,p.id as partida
-			,if(e.user = de.id, "desafiador", "desafiado") AS orden
+			,if(e.user = de.id, "Desafiador", "Desafiado") AS orden
+			,if(e.user = u1.id, u2.nickname, u1.nickname) AS nickEnemigo
 			,l.nombre as ejercitoNombre
 			,l.id as listaId
 			,c.pts
@@ -200,12 +201,13 @@ CREATE PROCEDURE proceso_datosPartida(
 			,f.fechaInicio
 			,if(f.fechaFin is null, false, true) as finalizada
 			
-			FROM (((((((
+			FROM ((((((((
 				ejercitos e
 					LEFT JOIN partidas p ON e.partida = p.id)
 					LEFT JOIN listasejercito l ON e.listaejercito = l.id)
+					LEFT JOIN users u1 ON p.desafiador = u1.id)
+					LEFT JOIN users u2 ON p.desafiado = u2.id)
 					LEFT JOIN users de ON p.desafiador = de.id)
-					LEFT JOIN users v ON p.vencedor = v.id)
 					LEFT JOIN (SELECT
 									ejercito
 									,max(turno) as turnos
@@ -227,6 +229,7 @@ CREATE PROCEDURE proceso_datosPartida(
 					LEFT JOIN correo c ON p.desafio = c.id)
 			WHERE e.id = _eId
 			ORDER BY fechaInicio DESC
+			LIMIT 1
 		;
 	END;
 $$

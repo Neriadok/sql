@@ -199,6 +199,23 @@ CREATE PROCEDURE proceso_addFalta(
 			WHERE id = _uId
 		;
 
+		IF(
+			(SELECT 
+				faltas 
+				FROM users 
+				WHERE id = _uId
+				LIMIT 1
+			) > 2
+		) THEN 
+			
+			UPDATE users
+				SET 
+					tipoUser = 0
+				WHERE id = _uId
+			;
+		
+		END IF;
+
 		INSERT 
 			INTO correo
 				(destinatario,tipo,fechaEmision)
