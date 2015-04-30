@@ -166,12 +166,11 @@ CREATE PROCEDURE proceso_listadoPartidas(
 								FROM (fases fa LEFT JOIN tiposfase tf ON fa.tipo = tf.orden) 
 									LEFT JOIN turnos tu ON fa.turno = tu.id
 								ORDER BY fa.fechaInicio DESC
-								LIMIT 1
 							) f
 						ON f.ejercito = e.id)
 					LEFT JOIN correo c ON p.desafio = c.id
 			WHERE e.user = _uId
-			ORDER BY fechaFin, fechaInicio DESC
+			ORDER BY fechaFin, fechaInicio
 		;
 	END;
 $$
@@ -198,6 +197,7 @@ CREATE PROCEDURE proceso_datosPartida(
 			,c.pts
 			,t.turnos
 			,f.nombre as fase
+			,f.ordenFase as ordenFase
 			,f.fechaInicio
 			,if(f.fechaFin is null, false, true) as finalizada
 			
@@ -216,14 +216,14 @@ CREATE PROCEDURE proceso_datosPartida(
 							) t
 						ON t.ejercito = e.id)
 					LEFT JOIN (SELECT
-								tf.nombre
+								tf.nombre as nombre
+								,fa.tipo as ordenFase
 								,tu.ejercito
 								,fa.fechaInicio
 								,fa.fechaFin
 								FROM (fases fa LEFT JOIN tiposfase tf ON fa.tipo = tf.orden) 
 									LEFT JOIN turnos tu ON fa.turno = tu.id
 								ORDER BY fa.fechaInicio DESC
-								LIMIT 1
 							) f
 						ON f.ejercito = e.id)
 					LEFT JOIN correo c ON p.desafio = c.id)
@@ -235,13 +235,282 @@ CREATE PROCEDURE proceso_datosPartida(
 $$
 DELIMITER ;
 
+/*Elegir una lista para un ejercito*/
+DROP PROCEDURE IF EXISTS proceso_seleccionarLista;
+DELIMITER $$
+CREATE PROCEDURE proceso_seleccionarLista(
+		IN _ejercito INTEGER UNSIGNED
+		,IN _lista INTEGER UNSIGNED
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+		UPDATE
+			ejercitos
+			SET
+				listaejercito = _lista
+			WHERE
+				id = _ejercito
+		;
+	END;
+$$
+DELIMITER ;
 
-/**PENDIENTE**
-/*Hay nuevos mensajes privados*
+/*Comprobar cuantas listas de ejercito se han elegido para una partida*/
+DROP PROCEDURE IF EXISTS proceso_checkEjercitosPartida;
+DELIMITER $$
+CREATE PROCEDURE proceso_checkEjercitosPartida(
+		IN _partida INTEGER UNSIGNED
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+		SELECT
+			listaejercito
+			FROM ejercitos
+			WHERE partida = _partida AND listaejercito IS NOT NULL
+		;
+	END;
+$$
+DELIMITER ;
+
+
+/*Rendir una partida*/
+DROP PROCEDURE IF EXISTS proceso_rendirse;
+DELIMITER $$
+CREATE PROCEDURE proceso_rendirse(
+		IN _ejercito INTEGER UNSIGNED
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+
+		DECLARE _partida INTEGER UNSIGNED;
+		DECLARE _rendido INTEGER UNSIGNED;
+		DECLARE _vencedor INTEGER UNSIGNED;
+
+		SET _rendido = (
+				SELECT user FROM ejercitos WHERE id = _ejercito LIMIT 1
+			);
+
+		SET _partida = (
+				SELECT partida FROM ejercitos WHERE id = _ejercito LIMIT 1
+			);
+
+		SET _vencedor = (
+				SELECT user FROM ejercitos WHERE partida = _partida AND id != _rendido LIMIT 1
+			);
+
+		
+
+		UPDATE users
+			SET 
+				renombre = renombre - 1
+			WHERE id = _rendido 
+		;
+
+		UPDATE users
+			SET 
+				renombre = renombre + 5
+			WHERE id = _vencedor
+		;
+
+		UPDATE partidas
+			SET
+				fechaFin = now()
+				, vencedor = _vencedor
+			WHERE id = _partida
+		;
+	END;
+$$
+DELIMITER ;
+
+
+/*Empezar a jugar una partida*/
+DROP PROCEDURE IF EXISTS proceso_empezarPartida;
+DELIMITER $$
+CREATE PROCEDURE proceso_empezarPartida(
+		IN _partida INTEGER UNSIGNED
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+		DECLARE _primerEjercito INTEGER UNSIGNED;
+		
+		SET _primerEjercito = (
+				SELECT id FROM ejercitos WHERE partida = _partida AND user = (SELECT desafiador FROM partidas WHERE id = _partida LIMIT 1) LIMIT 1
+			);
+		
+		INSERT
+			INTO turnos
+				(turno,ejercito,fechaInicio)
+			VALUES
+				(1,_primerEjercito,now())
+		;
+
+		INSERT
+			INTO fases
+				(turno,tipo,fechaInicio)
+			VALUES
+				(
+					(SELECT id FROM turnos WHERE ejercito = _primerEjercito AND turno = 1 LIMIT 1)
+					, 0
+					, now()
+				)
+		;
+	END;
+$$
+DELIMITER ;
+
+
+/*Tropas en una partida diferenciadas por ejercito*/
+DROP PROCEDURE IF EXISTS proceso_tropasEjercito;
+DELIMITER $$
+CREATE PROCEDURE proceso_tropasEjercito(
+		IN _despliegue BOOLEAN
+		,IN _ejercito INTEGER UNSIGNED
+		,IN _partida INTEGER UNSIGNED
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+		IF(_despliegue) THEN
+			SELECT
+				t.id
+				, t.nombre
+				, t.pts
+				, t.esGeneral
+				, t.estandarteBatalla
+				, t.campeon
+				, t.musico
+				, t.estandarte
+				, tt.nombre as tipoTropaNombre
+				, ur.maxRango
+				, t.miembros
+				, (0) as heridas
+				, (true) as ejercito
+				, (false) as enCampo
+				, (null) as estado /*Cargando, bajoCarga, enCombate, desorganizada*/
+				, (null) as latitud
+				, (null) as altitud
+				, (null) as orientacion
+				, (null) as unidadesFila
+				, (null) as tropaAdoptivaId
+				, (null) as tropaBajoAtaqueId
+				, (null) as tropaBajoAtaqueFlanco
+				FROM 
+					(tropas t LEFT JOIN
+						(SELECT
+							max(rango) as maxRango
+							,tropa
+							FROM unidades
+							GROUP BY tropa
+						)
+					ur ON t.id = ur.tropa) LEFT JOIN 
+					tipostropa tt ON t.tipo = tt.id
+				WHERE 
+					t.lista = (SELECT listaejercito FROM ejercitos WHERE id = _ejercito LIMIT 1)
+				GROUP BY t.id
+				ORDER BY ur.maxRango DESC, t.nombre
+			;
+		ELSE
+			SELECT
+				1
+				, 1
+				, 1
+				, 1
+				, 1
+				, 1
+				, 1
+				, 1
+				, 1
+				, 1
+				, 1
+				, 1
+				, 1
+			;
+		END IF;
+	END;
+$$
+DELIMITER ;
+
+
+/*Tropas en una partida diferenciadas por ejercito*/
+DROP PROCEDURE IF EXISTS proceso_unidadesTropaEjercito;
+DELIMITER $$
+CREATE PROCEDURE proceso_unidadesTropaEjercito(
+		IN _tropaId INTEGER UNSIGNED
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+		
+		SELECT
+			if(u.rango=0
+				,"Maquinaria-Carro"
+				,if(u.rango=1
+					,"Montura-Bestia tiro"
+					,if(u.rango=2
+						,"Soldado-Dotacion"
+						,if(u.rango=6
+							,"Heroe"
+							,if(u.rango=7
+								,"Comandante"
+								,if(u.rango=8
+									,"Porta estandarte de batalla"
+									,"General del ejercito"
+								)
+							)
+						)
+					)
+				)
+			) as tipoRango
+			,u.rango
+			,u.representada
+			,u.montura
+			,u.dotacion
+			,u.maquinaria
+			,u.movimiento
+			,u.ha
+			,u.hp
+			,u.f
+			,u.r
+			,u.ps
+			,u.i
+			,u.a
+			,u.l
+			FROM 
+				tropas t
+			LEFT JOIN
+				(SELECT 
+					*
+					FROM unidades
+					WHERE tropa=_tropaId AND (rango < 3 OR rango > 5)
+					GROUP BY rango
+					ORDER BY rango DESC
+				) u ON t.id=u.tropa
+			WHERE t.id=_tropaId
+		;
+	END;
+$$
+DELIMITER ;
+
+
+
+/**PENDIENTE**/
+
+
+/**
 DROP PROCEDURE IF EXISTS proceso_;
 DELIMITER $$
 CREATE PROCEDURE proceso_(
-		IN _uId INTEGER UNSIGNED
+		IN  INTEGER UNSIGNED
 	)
 	LANGUAGE SQL
 	CONTAINS SQL

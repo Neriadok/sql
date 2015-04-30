@@ -83,9 +83,12 @@ CREATE PROCEDURE proceso_amigos(
 				LEFT JOIN (
 					SELECT 
 						userId
-						,if(time_to_sec(now())-time_to_sec(max(hora))>3*60
+						,if(hora is not null,
+							if(UNIX_TIMESTAMP(now())-UNIX_TIMESTAMP(max(hora))>3*60
+								,false
+								,true
+							)
 							,false
-							,true
 						) AS conectado
 						FROM actividades
 						GROUP BY userId
@@ -95,9 +98,12 @@ CREATE PROCEDURE proceso_amigos(
 				LEFT JOIN (
 					SELECT 
 						userId
-						,if(time_to_sec(now())-time_to_sec(max(hora))>3*60
+						,if(hora is not null,
+							if(UNIX_TIMESTAMP(now())-UNIX_TIMESTAMP(max(hora))>3*60
+								,false
+								,true
+							)
 							,false
-							,true
 						) AS conectado
 						FROM actividades
 						GROUP BY userId

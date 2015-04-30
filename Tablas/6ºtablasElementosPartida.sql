@@ -83,16 +83,3 @@ CREATE TABLE situacionesTropas
 	,UNIQUE (tropa,fase)
 	,UNIQUE (altitud1,latitud1,orientacion1,fase)
 	)engine=innoDB;
-
-/*Situacion de una unidad en una fase*/
-CREATE TABLE situacionesUnidades
-	(id INTEGER UNSIGNED AUTO_INCREMENT
-	,unidad INTEGER UNSIGNED NOT NULL
-	,situacionTropa INTEGER UNSIGNED NOT NULL
-	,montada BOOLEAN NOT NULL
-	,tirando BOOLEAN NOT NULL
-	,PRIMARY KEY (id)
-	,FOREIGN KEY (unidad) REFERENCES unidades(id)
-	,FOREIGN KEY (situacionTropa) REFERENCES situacionesTropas(id)
-	,UNIQUE (unidad,situacionTropa)
-	)engine=innoDB;
