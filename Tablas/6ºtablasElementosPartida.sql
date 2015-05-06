@@ -13,10 +13,10 @@ CREATE TABLE partidas
 	,desafio INTEGER UNSIGNED NOT NULL
 	,vencedor INTEGER UNSIGNED NULL
 	,PRIMARY KEY (id)
-	,FOREIGN KEY (desafio) REFERENCES correo(id)
-	,FOREIGN KEY (desafiado) REFERENCES users(id)
-	,FOREIGN KEY (desafiador) REFERENCES users(id)
-	,FOREIGN KEY (vencedor) REFERENCES users(id)
+	,FOREIGN KEY (desafio) REFERENCES correo(id) ON DELETE CASCADE
+	,FOREIGN KEY (desafiado) REFERENCES users(id) ON DELETE CASCADE
+	,FOREIGN KEY (desafiador) REFERENCES users(id) ON DELETE CASCADE
+	,FOREIGN KEY (vencedor) REFERENCES users(id) ON DELETE CASCADE
 	,UNIQUE (desafio)
 	)engine=innoDB;
 
@@ -27,9 +27,9 @@ CREATE TABLE ejercitos
 	,user INTEGER UNSIGNED NOT NULL
 	,listaejercito INTEGER UNSIGNED
 	,PRIMARY KEY (id)
-	,FOREIGN KEY (user) REFERENCES users(id)
-	,FOREIGN KEY (listaejercito) REFERENCES listasejercito(id)
-	,FOREIGN KEY (partida) REFERENCES partidas(id)
+	,FOREIGN KEY (user) REFERENCES users(id) ON DELETE CASCADE
+	,FOREIGN KEY (listaejercito) REFERENCES listasejercito(id) ON DELETE SET NULL
+	,FOREIGN KEY (partida) REFERENCES partidas(id) ON DELETE CASCADE
 	,UNIQUE (listaejercito,partida)
 	)engine=innoDB;
 
@@ -41,7 +41,7 @@ CREATE TABLE turnos
 	,fechaInicio DATETIME NOT NULL
 	,fechaFin DATETIME NULL
 	,PRIMARY KEY (id)
-	,FOREIGN KEY (ejercito) REFERENCES ejercitos(id)
+	,FOREIGN KEY (ejercito) REFERENCES ejercitos(id) ON DELETE CASCADE
 	,UNIQUE (turno,ejercito)
 	)engine=innoDB;
 
@@ -53,8 +53,8 @@ CREATE TABLE fases
 	,fechaInicio DATETIME NOT NULL
 	,fechaFin DATETIME NULL
 	,PRIMARY KEY (id)
-	,FOREIGN KEY (turno) REFERENCES turnos(id)
-	,FOREIGN KEY (tipo) REFERENCES tiposfase(orden)
+	,FOREIGN KEY (turno) REFERENCES turnos(id) ON DELETE CASCADE
+	,FOREIGN KEY (tipo) REFERENCES tiposfase(orden) ON DELETE CASCADE
 	,UNIQUE (turno,tipo)
 	)engine=innoDB;
 
@@ -77,9 +77,9 @@ CREATE TABLE situacionesTropas
 	,combateD BOOLEAN NULL
 	,combateR BOOLEAN NULL
 	,PRIMARY KEY (id)
-	,FOREIGN KEY (fase) REFERENCES fases(id)
-	,FOREIGN KEY (tropa) REFERENCES tropas(id)
-	,FOREIGN KEY (tropaAdoptiva) REFERENCES situacionesTropas(id)
+	,FOREIGN KEY (fase) REFERENCES fases(id) ON DELETE CASCADE
+	,FOREIGN KEY (tropa) REFERENCES tropas(id) ON DELETE CASCADE
+	,FOREIGN KEY (tropaAdoptiva) REFERENCES situacionesTropas(id) ON DELETE SET NULL
 	,UNIQUE (tropa,fase)
 	,UNIQUE (altitud1,latitud1,orientacion1,fase)
 	)engine=innoDB;

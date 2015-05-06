@@ -450,21 +450,30 @@ CREATE PROCEDURE proceso_deleteList(
 	CONTAINS SQL
 	MODIFIES SQL DATA
 	BEGIN
-		DELETE
-			FROM unidades
-			WHERE tropa IN 
-				(SELECT id  FROM tropas WHERE lista = _lId)
-		;
+		IF(_lId NOT IN (
+				SELECT 
+					e.listaejercito
+					FROM
+						ejercitos e LEFT JOIN partidas p ON e.partida = p.id
+					WHERE p.fechaFin IS NULL
+			)
+		)THEN
+			DELETE
+				FROM unidades
+				WHERE tropa IN 
+					(SELECT id  FROM tropas WHERE lista = _lId)
+			;
 
-		DELETE
-			FROM tropas
-			WHERE lista = _lId
-		;
-		
-		DELETE
-			FROM listasejercito
-			WHERE id = _lId
-		;
+			DELETE
+				FROM tropas
+				WHERE lista = _lId
+			;
+			
+			DELETE
+				FROM listasejercito
+				WHERE id = _lId
+			;
+		END IF;
 	END;
 $$
 DELIMITER ;

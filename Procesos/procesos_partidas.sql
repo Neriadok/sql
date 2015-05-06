@@ -455,9 +455,9 @@ CREATE PROCEDURE proceso_unidadesTropaEjercito(
 			if(u.rango=0
 				,"Maquinaria-Carro"
 				,if(u.rango=1
-					,"Montura-Bestia tiro"
+					,"Montura-Tiro"
 					,if(u.rango=2
-						,"Soldado-Dotacion"
+						,"Soldado"
 						,if(u.rango=6
 							,"Heroe"
 							,if(u.rango=7
