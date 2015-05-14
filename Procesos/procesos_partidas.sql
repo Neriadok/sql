@@ -196,6 +196,7 @@ CREATE PROCEDURE proceso_datosPartida(
 			,l.id as listaId
 			,c.pts
 			,t.turnos
+			,f.id as faseId
 			,f.nombre as fase
 			,f.ordenFase as ordenFase
 			,f.fechaInicio
@@ -219,6 +220,7 @@ CREATE PROCEDURE proceso_datosPartida(
 								tf.nombre as nombre
 								,fa.tipo as ordenFase
 								,tu.ejercito
+								,fa.id
 								,fa.fechaInicio
 								,fa.fechaFin
 								FROM (fases fa LEFT JOIN tiposfase tf ON fa.tipo = tf.orden) 
@@ -389,13 +391,11 @@ CREATE PROCEDURE proceso_tropasEjercito(
 				, t.campeon
 				, t.musico
 				, t.estandarte
-				, tt.nombre as tipoTropaNombre
 				, ur.maxRango
 				, t.miembros
 				, (0) as heridas
 				, (true) as ejercito
-				, (false) as enCampo
-				, (null) as estado /*Cargando, bajoCarga, enCombate, desorganizada*/
+				, "Sin desplegar" as estado /*Cargando, bajoCarga, enCombate, desorganizada*/
 				, (null) as latitud
 				, (null) as altitud
 				, (null) as orientacion
@@ -411,8 +411,7 @@ CREATE PROCEDURE proceso_tropasEjercito(
 							FROM unidades
 							GROUP BY tropa
 						)
-					ur ON t.id = ur.tropa) LEFT JOIN 
-					tipostropa tt ON t.tipo = tt.id
+					ur ON t.id = ur.tropa)
 				WHERE 
 					t.lista = (SELECT listaejercito FROM ejercitos WHERE id = _ejercito LIMIT 1)
 				GROUP BY t.id
@@ -420,19 +419,26 @@ CREATE PROCEDURE proceso_tropasEjercito(
 			;
 		ELSE
 			SELECT
-				1
-				, 1
-				, 1
-				, 1
-				, 1
-				, 1
-				, 1
-				, 1
-				, 1
-				, 1
-				, 1
-				, 1
-				, 1
+				t.id
+				, t.nombre
+				, t.pts
+				, t.esGeneral
+				, t.estandarteBatalla
+				, t.campeon
+				, t.musico
+				, t.estandarte
+				, ur.maxRango
+				, t.miembros
+				, (0) as heridas
+				, (true) as ejercito
+				, "Sin desplegar" as estado /*Cargando, bajoCarga, enCombate, desorganizada*/
+				, (null) as latitud
+				, (null) as altitud
+				, (null) as orientacion
+				, (null) as unidadesFila
+				, (null) as tropaAdoptivaId
+				, (null) as tropaBajoAtaqueId
+				, (null) as tropaBajoAtaqueFlanco
 			;
 		END IF;
 	END;
@@ -496,6 +502,62 @@ CREATE PROCEDURE proceso_unidadesTropaEjercito(
 					ORDER BY rango DESC
 				) u ON t.id=u.tropa
 			WHERE t.id=_tropaId
+		;
+	END;
+$$
+DELIMITER ;
+
+
+/**Proceso para registrar nuevas situaciones de tropas*/
+DROP PROCEDURE IF EXISTS proceso_addSituacion;
+DELIMITER $$
+CREATE PROCEDURE proceso_addSituacion(
+		IN _aliada BOOLEAN
+		,IN _tropa INTEGER UNSIGNED
+		,IN _fase INTEGER UNSIGNED
+		,IN _unidadesFila INTEGER UNSIGNED
+		,IN _altitud INTEGER UNSIGNED
+		,IN _latitud INTEGER UNSIGNED
+		,IN _orientacion INTEGER UNSIGNED
+		,IN _heridas INTEGER UNSIGNED
+		,IN _tropaAdoptiva INTEGER UNSIGNED
+		,IN _tropaBajoAtaque INTEGER UNSIGNED
+		,IN _tropaBajoAtaqueFlanco VARCHAR (255)
+		,IN _estado VARCHAR (255)
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+		INSERT
+			INTO situacionestropas
+				( tropa
+				, aliada
+				, fase
+				, unidadesFila
+				, altitud
+				, latitud
+				, orientacion
+				, heridas
+				, tropaAdoptiva
+				, tropaBajoAtaque
+				, tropaBajoAtaqueFlanco
+				, estado
+				)
+			VALUES
+				( _tropa
+				, _aliada
+				, _fase
+				, _unidadesFila
+				, _altitud
+				, _latitud
+				, _orientacion
+				, _heridas
+				, _tropaAdoptiva
+				, _tropaBajoAtaque
+				, _tropaBajoAtaqueFlanco
+				, _estado
+				)
 		;
 	END;
 $$
