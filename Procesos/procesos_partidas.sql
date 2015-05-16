@@ -192,6 +192,7 @@ CREATE PROCEDURE proceso_datosPartida(
 			,p.id as partida
 			,if(e.user = de.id, "Desafiador", "Desafiado") AS orden
 			,if(e.user = u1.id, u2.nickname, u1.nickname) AS nickEnemigo
+			,en.id AS ejercitoEnemigoId
 			,l.nombre as ejercitoNombre
 			,l.id as listaId
 			,c.pts
@@ -202,7 +203,7 @@ CREATE PROCEDURE proceso_datosPartida(
 			,f.fechaInicio
 			,if(f.fechaFin is null, false, true) as finalizada
 			
-			FROM ((((((((
+			FROM (((((((((
 				ejercitos e
 					LEFT JOIN partidas p ON e.partida = p.id)
 					LEFT JOIN listasejercito l ON e.listaejercito = l.id)
@@ -228,6 +229,13 @@ CREATE PROCEDURE proceso_datosPartida(
 								ORDER BY fa.fechaInicio DESC
 							) f
 						ON f.ejercito = e.id)
+					LEFT JOIN (SELECT
+								id
+								,partida
+								FROM ejercitos
+								WHERE id != _eId
+							) en
+						ON en.partida = e.partida)
 					LEFT JOIN correo c ON p.desafio = c.id)
 			WHERE e.id = _eId
 			ORDER BY fechaInicio DESC
@@ -373,14 +381,37 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS proceso_tropasEjercito;
 DELIMITER $$
 CREATE PROCEDURE proceso_tropasEjercito(
-		IN _despliegue BOOLEAN
+		IN _partida INTEGER UNSIGNED
 		,IN _ejercito INTEGER UNSIGNED
-		,IN _partida INTEGER UNSIGNED
+		,IN _fase INTEGER UNSIGNED
 	)
 	LANGUAGE SQL
 	CONTAINS SQL
 	MODIFIES SQL DATA
 	BEGIN
+		DECLARE _despliegue BOOLEAN;
+		IF (
+			(SELECT 
+				count(*) AS situaciones
+				FROM situacionestropas 
+				WHERE 
+					fase IN (
+						SELECT 
+							id 
+							FROM fases 
+							WHERE
+								turno IN (
+									SELECT
+										id
+										FROM turnos
+										WHERE ejercito = _ejercito
+								)
+					)
+			) = 0
+		) THEN SET _despliegue = true;
+		ELSE SET _despliegue = false;
+		END IF;
+		
 		IF(_despliegue) THEN
 			SELECT
 				t.id
@@ -395,7 +426,7 @@ CREATE PROCEDURE proceso_tropasEjercito(
 				, t.miembros
 				, (0) as heridas
 				, (true) as ejercito
-				, "Sin desplegar" as estado /*Cargando, bajoCarga, enCombate, desorganizada*/
+				, "Sin desplegar" as estado
 				, (null) as latitud
 				, (null) as altitud
 				, (null) as orientacion
@@ -415,7 +446,7 @@ CREATE PROCEDURE proceso_tropasEjercito(
 				WHERE 
 					t.lista = (SELECT listaejercito FROM ejercitos WHERE id = _ejercito LIMIT 1)
 				GROUP BY t.id
-				ORDER BY ur.maxRango DESC, t.nombre
+				ORDER BY ejercito DESC, ur.maxRango DESC, t.nombre
 			;
 		ELSE
 			SELECT
@@ -429,16 +460,42 @@ CREATE PROCEDURE proceso_tropasEjercito(
 				, t.estandarte
 				, ur.maxRango
 				, t.miembros
-				, (0) as heridas
-				, (true) as ejercito
-				, "Sin desplegar" as estado /*Cargando, bajoCarga, enCombate, desorganizada*/
-				, (null) as latitud
-				, (null) as altitud
-				, (null) as orientacion
-				, (null) as unidadesFila
-				, (null) as tropaAdoptivaId
-				, (null) as tropaBajoAtaqueId
-				, (null) as tropaBajoAtaqueFlanco
+				, s.heridas as heridas
+				, s.aliada as ejercito
+				, s.estado
+				, s.latitud
+				, s.altitud
+				, s.orientacion
+				, s.unidadesFila
+				, s.tropaAdoptiva
+				, s.tropaBajoAtaque
+				, s.tropaBajoAtaqueFlanco
+				FROM (((
+					situacionestropas s
+					LEFT JOIN tropas t ON s.tropa = t.id)
+					LEFT JOIN
+						(SELECT
+							max(rango) as maxRango
+							,tropa
+							FROM unidades
+							GROUP BY tropa
+						) ur 
+						ON t.id = ur.tropa)
+					LEFT JOIN
+						(SELECT
+							f.id AS fase
+							,e.id AS ejercito
+							FROM (
+								fases f
+								LEFT JOIN turnos t
+								ON f.turno = t.id)
+								LEFT JOIN ejercitos e
+								ON t.ejercito = e.id
+						) f
+						ON s.fase = f.fase)
+				WHERE f.ejercito = _ejercito
+				GROUP BY t.id
+				ORDER BY ejercito DESC, ur.maxRango DESC, t.nombre
 			;
 		END IF;
 	END;
@@ -514,7 +571,7 @@ DELIMITER $$
 CREATE PROCEDURE proceso_addSituacion(
 		IN _aliada BOOLEAN
 		,IN _tropa INTEGER UNSIGNED
-		,IN _fase INTEGER UNSIGNED
+		,IN _ejercito INTEGER UNSIGNED
 		,IN _unidadesFila INTEGER UNSIGNED
 		,IN _altitud INTEGER UNSIGNED
 		,IN _latitud INTEGER UNSIGNED
@@ -529,35 +586,151 @@ CREATE PROCEDURE proceso_addSituacion(
 	CONTAINS SQL
 	MODIFIES SQL DATA
 	BEGIN
-		INSERT
-			INTO situacionestropas
-				( tropa
-				, aliada
-				, fase
-				, unidadesFila
-				, altitud
-				, latitud
-				, orientacion
-				, heridas
-				, tropaAdoptiva
-				, tropaBajoAtaque
-				, tropaBajoAtaqueFlanco
-				, estado
-				)
+		DECLARE _fase INTEGER UNSIGNED;
+		DECLARE _tropaId INTEGER UNSIGNED;
+
+		SET _fase = (
+				SELECT 
+						id
+						FROM fases 
+						WHERE 
+							turno IN (
+									SELECT
+										id 
+										FROM turnos 
+										WHERE
+											ejercito = _ejercito
+								)
+						ORDER BY fechaInicio DESC
+						LIMIT 1
+				);
+
+		SET _tropaId = (
+				SELECT 
+						id 
+						FROM situacionestropas 
+						WHERE tropa = _tropa 
+						AND fase = _fase
+						LIMIT 1
+				);
+
+
+		IF(_tropaId IS NULL) THEN
+			INSERT
+				INTO situacionestropas
+					( tropa
+					, aliada
+					, fase
+					, unidadesFila
+					, altitud
+					, latitud
+					, orientacion
+					, heridas
+					, tropaAdoptiva
+					, tropaBajoAtaque
+					, tropaBajoAtaqueFlanco
+					, estado
+					)
+				VALUES
+					( _tropa
+					, _aliada
+					, _fase
+					, _unidadesFila
+					, _altitud
+					, _latitud
+					, _orientacion
+					, _heridas
+					, _tropaAdoptiva
+					, _tropaBajoAtaque
+					, _tropaBajoAtaqueFlanco
+					, _estado
+					)
+			;
+		ELSE
+			UPDATE situacionesTropas
+				SET
+					unidadesFila = _unidadesFila
+					, altitud = _altitud
+					, latitud = _latitud
+					, orientacion = _orientacion
+					, heridas = _heridas
+					, tropaAdoptiva = _tropaAdoptiva
+					, tropaBajoAtaque = _tropaBajoAtaque
+					, tropaBajoAtaqueFlanco = _tropaBajoAtaqueFlanco
+					, estado = _estado
+				WHERE id = _tropaId;
+		END IF;
+	END;
+$$
+DELIMITER ;
+
+
+/** Proceso para añadir un nuevo turno */
+DROP PROCEDURE IF EXISTS proceso_nuevoTurno;
+DELIMITER $$
+CREATE PROCEDURE proceso_nuevoTurno(
+		IN _turno INTEGER UNSIGNED
+		,IN _ejercito INTEGER UNSIGNED
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+		INSERT 
+			INTO turnos
+				(turno,ejercito,fechaInicio)
 			VALUES
-				( _tropa
-				, _aliada
-				, _fase
-				, _unidadesFila
-				, _altitud
-				, _latitud
-				, _orientacion
-				, _heridas
-				, _tropaAdoptiva
-				, _tropaBajoAtaque
-				, _tropaBajoAtaqueFlanco
-				, _estado
-				)
+				(_turno,_ejercito,now())
+		;
+	END;
+$$
+DELIMITER ;
+
+
+/** Proceso para finalizar una fase */
+DROP PROCEDURE IF EXISTS proceso_finalizarFase;
+DELIMITER $$
+CREATE PROCEDURE proceso_finalizarFase(
+		IN _turno INTEGER UNSIGNED
+		,IN _ejercito INTEGER UNSIGNED
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+		UPDATE
+			fases
+			SET
+				fechaFin = now()
+			WHERE
+				turno IN 
+					(SELECT 
+						id 
+						FROM turnos 
+						WHERE turno = _turno AND ejercito = _ejercito
+					)
+		;
+	END;
+$$
+DELIMITER ;
+
+
+/** Proceso para añadir una nueva fase */
+DROP PROCEDURE IF EXISTS proceso_nuevaFase;
+DELIMITER $$
+CREATE PROCEDURE proceso_nuevaFase(
+		IN _orden INTEGER UNSIGNED
+		,IN _ejercito INTEGER UNSIGNED
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+		INSERT 
+			INTO fases
+				(turno,tipo,fechaInicio)
+			VALUES
+				((SELECT id FROM turnos WHERE ejercito = _ejercito AND fechaFin IS NULL LIMIT 1),_orden,now())
 		;
 	END;
 $$

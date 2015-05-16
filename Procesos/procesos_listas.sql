@@ -434,7 +434,7 @@ CREATE PROCEDURE proceso_perfilComponente(
 					WHERE tropa=_tId AND rango = _rango
 					LIMIT 1
 				) u ON t.id=u.tropa
-			WHERE id=_tId AND u.rango = _rango
+			WHERE t.id=_tId AND u.rango = _rango
 		;
 	END;
 $$
