@@ -166,6 +166,7 @@ CREATE PROCEDURE proceso_listadoPartidas(
 								FROM (fases fa LEFT JOIN tiposfase tf ON fa.tipo = tf.orden) 
 									LEFT JOIN turnos tu ON fa.turno = tu.id
 								ORDER BY fa.fechaInicio DESC
+								LIMIT 1
 							) f
 						ON f.ejercito = e.id)
 					LEFT JOIN correo c ON p.desafio = c.id
@@ -676,6 +677,15 @@ CREATE PROCEDURE proceso_nuevoTurno(
 	CONTAINS SQL
 	MODIFIES SQL DATA
 	BEGIN
+		IF(_turno > 1) THEN
+			UPDATE turnos
+				SET
+					fechaFin = now()
+				WHERE
+					ejercito = _ejercito
+			;
+		END IF;
+
 		INSERT 
 			INTO turnos
 				(turno,ejercito,fechaInicio)
