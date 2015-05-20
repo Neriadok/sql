@@ -166,6 +166,7 @@ CREATE PROCEDURE proceso_listadoPartidas(
 								FROM (fases fa LEFT JOIN tiposfase tf ON fa.tipo = tf.orden) 
 									LEFT JOIN turnos tu ON fa.turno = tu.id
 								ORDER BY fa.fechaInicio DESC
+								LIMIT 1
 							) f
 						ON f.ejercito = e.id)
 					LEFT JOIN correo c ON p.desafio = c.id
@@ -471,7 +472,19 @@ CREATE PROCEDURE proceso_tropasEjercito(
 				, s.tropaBajoAtaque
 				, s.tropaBajoAtaqueFlanco
 				FROM (((
-					situacionestropas s
+					(SELECT
+							f.id AS fase
+							,e.id AS ejercito
+							FROM (
+								fases f
+								LEFT JOIN turnos t
+								ON f.turno = t.id)
+								LEFT JOIN ejercitos e
+								ON t.ejercito = e.id
+							ORDER BY f.fechaInicio DESC
+						) f
+					LEFT JOIN situacionestropas s
+						ON s.fase = f.fase)
 					LEFT JOIN tropas t ON s.tropa = t.id)
 					LEFT JOIN
 						(SELECT
@@ -481,18 +494,7 @@ CREATE PROCEDURE proceso_tropasEjercito(
 							GROUP BY tropa
 						) ur 
 						ON t.id = ur.tropa)
-					LEFT JOIN
-						(SELECT
-							f.id AS fase
-							,e.id AS ejercito
-							FROM (
-								fases f
-								LEFT JOIN turnos t
-								ON f.turno = t.id)
-								LEFT JOIN ejercitos e
-								ON t.ejercito = e.id
-						) f
-						ON s.fase = f.fase)
+					
 				WHERE f.ejercito = _ejercito
 				GROUP BY t.id
 				ORDER BY ejercito DESC, ur.maxRango DESC, t.nombre
@@ -676,6 +678,15 @@ CREATE PROCEDURE proceso_nuevoTurno(
 	CONTAINS SQL
 	MODIFIES SQL DATA
 	BEGIN
+		IF(_turno > 1) THEN
+			UPDATE turnos
+				SET
+					fechaFin = now()
+				WHERE
+					ejercito = _ejercito
+			;
+		END IF;
+
 		INSERT 
 			INTO turnos
 				(turno,ejercito,fechaInicio)
