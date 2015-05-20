@@ -483,7 +483,7 @@ CREATE PROCEDURE proceso_tropasEjercito(
 						ON t.id = ur.tropa)
 					LEFT JOIN
 						(SELECT
-							max(f.id) AS fase
+							f.id AS fase
 							,e.id AS ejercito
 							FROM (
 								fases f
