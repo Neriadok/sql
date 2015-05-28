@@ -806,6 +806,7 @@ CREATE PROCEDURE proceso_ejercitoMasacrador(
 		DECLARE _partida INTEGER UNSIGNED;
 		DECLARE _perdedor INTEGER UNSIGNED;
 		DECLARE _vencedor INTEGER UNSIGNED;
+		DECLARE _puntuacion INTEGER UNSIGNED;
 
 		IF(_masacrador) THEN
 
@@ -836,7 +837,20 @@ CREATE PROCEDURE proceso_ejercitoMasacrador(
 
 		UPDATE users
 			SET 
-				renombre = renombre + 150
+				renombre = renombre+
+					(
+						SELECT
+							pts
+							FROM correos
+							WHERE id = (
+								SELECT
+									desafio
+									FROM partidas
+									WHERE id = _partida
+									LIMIT 1
+							)
+							LIMIT 1
+					)/20
 			WHERE id = _vencedor
 		;
 
