@@ -191,6 +191,7 @@ CREATE PROCEDURE proceso_datosPartida(
 			e.id
 			,e.user
 			,p.id as partida
+			,p.fechaFin
 			,if(e.user = de.id, "Desafiador", "Desafiado") AS orden
 			,if(e.user = u1.id, u2.nickname, u1.nickname) AS nickEnemigo
 			,en.id AS ejercitoEnemigoId
@@ -742,6 +743,108 @@ CREATE PROCEDURE proceso_nuevaFase(
 				(turno,tipo,fechaInicio)
 			VALUES
 				((SELECT id FROM turnos WHERE ejercito = _ejercito AND fechaFin IS NULL LIMIT 1),_orden,now())
+		;
+	END;
+$$
+DELIMITER ;
+
+
+/*Rendir una partida*/
+DROP PROCEDURE IF EXISTS proceso_finalizarPartida;
+DELIMITER $$
+CREATE PROCEDURE proceso_finalizarPartida(
+		IN _ejercito INTEGER UNSIGNED
+		,IN _puntuacion INTEGER UNSIGNED
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+
+		DECLARE _partida INTEGER UNSIGNED;
+		DECLARE _perdedor INTEGER UNSIGNED;
+		DECLARE _vencedor INTEGER UNSIGNED;
+
+		SET _vencedor = (
+				SELECT user FROM ejercitos WHERE id = _ejercito LIMIT 1
+			);
+
+		SET _partida = (
+				SELECT partida FROM ejercitos WHERE id = _ejercito LIMIT 1
+			);
+
+
+		UPDATE users
+			SET 
+				renombre = renombre + _puntuacion
+			WHERE id = _vencedor
+		;
+
+		UPDATE partidas
+			SET
+				fechaFin = now()
+				, vencedor = _vencedor
+			WHERE id = _partida
+		;
+	END;
+$$
+DELIMITER ;
+
+
+/*Rendir una partida*/
+DROP PROCEDURE IF EXISTS proceso_ejercitoMasacrador;
+DELIMITER $$
+CREATE PROCEDURE proceso_ejercitoMasacrador(
+		IN _ejercito INTEGER UNSIGNED
+		,IN _masacrador BOOLEAN
+	)
+	LANGUAGE SQL
+	CONTAINS SQL
+	MODIFIES SQL DATA
+	BEGIN
+
+		DECLARE _partida INTEGER UNSIGNED;
+		DECLARE _perdedor INTEGER UNSIGNED;
+		DECLARE _vencedor INTEGER UNSIGNED;
+
+		IF(_masacrador) THEN
+
+			SET _vencedor = (
+					SELECT user FROM ejercitos WHERE id = _ejercito LIMIT 1
+				);
+
+			SET _partida = (
+					SELECT partida FROM ejercitos WHERE id = _ejercito LIMIT 1
+				);
+
+			SET _perdedor = (
+					SELECT user FROM ejercitos WHERE partida = _partida AND id != _vencedor LIMIT 1
+				);
+		ELSE
+			SET _perdedor = (
+					SELECT user FROM ejercitos WHERE id = _ejercito LIMIT 1
+				);
+
+			SET _partida = (
+					SELECT partida FROM ejercitos WHERE id = _ejercito LIMIT 1
+				);
+
+			SET _vencedor = (
+					SELECT user FROM ejercitos WHERE partida = _partida AND id != _vencedor LIMIT 1
+				);
+		END IF;
+
+		UPDATE users
+			SET 
+				renombre = renombre + 150
+			WHERE id = _vencedor
+		;
+
+		UPDATE partidas
+			SET
+				fechaFin = now()
+				, vencedor = _vencedor
+			WHERE id = _partida
 		;
 	END;
 $$
