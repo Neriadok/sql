@@ -41,6 +41,9 @@ INSERT
 	VALUES
 		(0,"Despliegue","Fase en que se disponen las tropas para la batalla.")
 		,(1,"Cargas","Fase en que las tropas marchan contra el enemigo, con objetivo de combatir.")
+		,(2,"Reaccion de cargas","")
+		,(3,"Movimiento","")
+		,(4,"Combate","")
 ;
 
 /***/
