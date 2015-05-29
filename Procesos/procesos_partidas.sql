@@ -192,6 +192,7 @@ CREATE PROCEDURE proceso_datosPartida(
 			,e.user
 			,p.id as partida
 			,p.fechaFin
+			,if(p.vencedor = u1.id, u2.nickname, u1.nickname) AS vencedor
 			,if(e.user = de.id, "Desafiador", "Desafiado") AS orden
 			,if(e.user = u1.id, u2.nickname, u1.nickname) AS nickEnemigo
 			,en.id AS ejercitoEnemigoId
@@ -841,7 +842,7 @@ CREATE PROCEDURE proceso_ejercitoMasacrador(
 					(
 						SELECT
 							pts
-							FROM correos
+							FROM correo
 							WHERE id = (
 								SELECT
 									desafio
