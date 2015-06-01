@@ -395,46 +395,28 @@ CREATE PROCEDURE proceso_perfilComponente(
 	MODIFIES SQL DATA
 	BEGIN
 		SELECT
-			u.tipoRango
-			,u.movimiento
-			,u.ha
-			,u.hp
-			,u.f
-			,u.r
-			,u.ps
-			,u.i
-			,u.a
-			,u.l
-			FROM 
-				tropas t
-			LEFT JOIN
-				(SELECT 
-					if(rango=0
-						,"Maquinaria-Carro"
-						,if(rango=1
-							,"Montura-Bestia tiro"
-							,if(rango=2
-								,"Soldado-Dotacion"
-								,"Personaje"
-							)
-						)
-					) as tipoRango
-					,rango
-					,movimiento
-					,ha
-					,hp
-					,f
-					,r
-					,ps
-					,i
-					,a
-					,l
-					,tropa
-					FROM unidades
-					WHERE tropa=_tId AND rango = _rango
-					LIMIT 1
-				) u ON t.id=u.tropa
-			WHERE t.id=_tId AND u.rango = _rango
+			if(rango=0
+				,"Maquinaria-Carro"
+				,if(rango=1
+					,"Montura-Bestia tiro"
+					,if(rango=2
+						,"Soldado-Dotacion"
+						,"Personaje"
+					)
+				)
+			) as tipoRango
+			,rango
+			,movimiento
+			,ha
+			,hp
+			,f
+			,r
+			,ps
+			,i
+			,a
+			,l
+			FROM unidades
+			WHERE tropa = _tId AND rango = _rango
 		;
 	END;
 $$

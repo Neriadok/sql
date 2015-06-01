@@ -192,9 +192,9 @@ CREATE PROCEDURE proceso_datosPartida(
 			,e.user
 			,p.id as partida
 			,p.fechaFin
-			,if(p.vencedor = u1.id, u2.nickname, u1.nickname) AS vencedor
-			,if(e.user = de.id, "Desafiador", "Desafiado") AS orden
-			,if(e.user = u1.id, u2.nickname, u1.nickname) AS nickEnemigo
+			,if(p.vencedor = u1.id, u1.nickname, u2.nickname) AS vencedor
+			,if(e.user = u1.id, "Desafiador", "Desafiado") AS orden
+			,if(u1.id = de.id, u2.nickname, u1.nickname) AS nickEnemigo
 			,en.id AS ejercitoEnemigoId
 			,l.nombre as ejercitoNombre
 			,l.id as listaId
